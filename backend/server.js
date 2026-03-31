@@ -22,7 +22,7 @@ const app = express();
 app.use(express.json()); // Allows JSON data
 app.use(cors()); // Allows frontend to communicate with backend
 app.use('/api/auth', authRoutes);
-app.use('/api/credentials', credentialRoutes);
+app.use('/api/credentials', require('./routes/credentials')); //use credential routes with base path /api/credentials
 // Use admin routes with base path /api/admin
 app.use('/api/admin', adminRoutes);
 

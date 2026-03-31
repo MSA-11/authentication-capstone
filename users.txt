@@ -1,0 +1,7 @@
+Admin User:
+username: testuser
+password: 123456
+
+Manager User:
+username: manageruser
+password:123456

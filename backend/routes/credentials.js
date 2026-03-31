@@ -86,4 +86,24 @@ router.put(
   }
 );
 
+// ===============================
+// GET ALL CREDENTIALS
+// ===============================
+
+// GET route to fetch all credentials
+router.get('/', auth, async (req, res) => {
+  try {
+    // TEMPORARY: Get ALL credentials (for frontend display)
+    // (You can later filter by division if needed)
+    const credentials = await Credential.find();
+
+    // Send credentials to frontend
+    res.json(credentials);
+  } catch (error) {
+    // Send error if something goes wrong
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Export router
 module.exports = router;
