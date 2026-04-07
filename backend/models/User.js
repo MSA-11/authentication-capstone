@@ -22,7 +22,7 @@ const UserSchema = new mongoose.Schema({
   ous: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'OU', // Links user to organisational units
+      ref: 'OU', // Links user to organizational units
     },
   ],
   divisions: [

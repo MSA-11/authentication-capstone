@@ -1,107 +1,138 @@
 /** @format */
 
-// Import required modules
+// Import Express (used to create routes)
 const express = require('express');
+
+// Create router
 const router = express.Router();
 
-// Import models
-const Credential = require('../models/Credential');
-const Division = require('../models/Division');
+// Import mongoose (needed for ObjectId conversion)
+const mongoose = require('mongoose');
 
-// Import middleware
-const auth = require('../middleware/authMiddleware');
-const checkRole = require('../middleware/roleMiddleware');
+// Import Credential model
+const Credential = require('../models/Credential.js');
 
-// =======================================
-// 1. VIEW CREDENTIALS (WITH PERMISSIONS)
-// =======================================
-router.get('/:divisionId', auth, async (req, res) => {
+// Import auth middleware (protect routes)
+const auth = require('../middleware/authMiddleware.js');
+
+// ==========================
+// GET ALL CREDENTIALS
+// ==========================
+router.get('/', auth, async (req, res) => {
   try {
-    const { divisionId } = req.params;
+    console.log('USER DIVISIONS:', req.user.divisions); // DEBUG
 
-    // Check if user belongs to this division
-    if (!req.user) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
+    // Find credentials linked to user's division
+    const credentials = await Credential.find({
+      division: { $in: req.user.divisions },
+    });
 
-    // Fetch credentials for this division
-    const credentials = await Credential.find({ division: divisionId });
+    console.log('Found Credentials:', credentials); // DEBUG
 
+    // Send data to frontend
     res.json(credentials);
   } catch (err) {
+    console.log('GET ERROR:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
 
-// =======================================
-// 2. ADD CREDENTIAL (NORMAL + MANAGEMENT)
-// =======================================
-router.post(
-  '/',
-  auth,
-  checkRole(['normal', 'management', 'admin']),
-  async (req, res) => {
-    try {
-      const { site, username, password, division } = req.body;
-
-      // Create new credential
-      const newCredential = new Credential({
-        site,
-        username,
-        password,
-        division,
-      });
-
-      await newCredential.save();
-
-      res.json(newCredential);
-    } catch (err) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  }
-);
-
-// =======================================
-// 3. UPDATE CREDENTIAL (MANAGEMENT ONLY)
-// =======================================
-router.put(
-  '/:id',
-  auth,
-  checkRole(['management', 'admin']),
-  async (req, res) => {
-    try {
-      const { site, username, password } = req.body;
-
-      // Find and update credential
-      const updatedCredential = await Credential.findByIdAndUpdate(
-        req.params.id,
-        { site, username, password },
-        { new: true }
-      );
-
-      res.json(updatedCredential);
-    } catch (err) {
-      res.status(500).json({ message: 'Server error' });
-    }
-  }
-);
-
-// ===============================
-// GET ALL CREDENTIALS
-// ===============================
-
-// GET route to fetch all credentials
-router.get('/', auth, async (req, res) => {
+// ==========================
+// ADD NEW CREDENTIAL
+// ==========================
+router.post('/', auth, async (req, res) => {
   try {
-    // TEMPORARY: Get ALL credentials (for frontend display)
-    // (You can later filter by division if needed)
-    const credentials = await Credential.find();
+    // DEBUG — VERY IMPORTANT
+    console.log('REQ BODY:', req.body);
 
-    // Send credentials to frontend
-    res.json(credentials);
+    //Extract fields from request body
+    const { site, username, password, division } = req.body;
+
+    // Validate inputs
+    if (!site || !username || !password || !division) {
+      return res.status(400).json({
+        message: 'All fields are required',
+      });
+    }
+
+    //SAFE objectId conversion (MUST be ObjectId for MongoDB)
+    if (!mongoose.Types.ObjectId.isValid(division)) {
+      return res.status(400).json({
+        message: 'Invalid division ID',
+      });
+    }
+
+    // Create new credential
+    const newCredential = new Credential({
+      site: site, // Website name
+      username: username, // Login username
+      password: password, // Login password
+      division: division, // MUST be ObjectId 'store the division ID directly.'
+    });
+
+    // Save to database
+    await newCredential.save();
+
+    console.log('SAVED:', newCredential);
+
+    // Success response
+    res.json(newCredential);
   } catch (error) {
-    // Send error if something goes wrong
-    res.status(500).json({ message: error.message });
+    console.log('POST ERROR:', error);
+
+    res.status(500).json({ message: 'Server error while adding credential' });
+  }
+});
+
+// ==========================
+// UPDATE CREDENTIAL
+// ==========================
+router.put('/:id', auth, async (req, res) => {
+  try {
+    // Get ID from URL
+    const { id } = req.params;
+
+    // Get updated values
+    const { site, username, password } = req.body;
+
+    // Validate input (IMPORTANT FIX)
+    if (!site || !username || !password) {
+      return res.status(400).json({
+        message: 'All fields are required for update',
+      });
+    }
+
+    // Update credential
+    const updatedCredential = await Credential.findByIdAndUpdate(
+      id,
+      {
+        site: site,
+        username: username,
+        password: password,
+      },
+      {
+        new: true, // Return updated document
+      }
+    );
+
+    // If not found
+    if (!updatedCredential) {
+      return res.status(404).json({
+        message: 'Credential not found',
+      });
+    }
+
+    // Success
+    res.json({
+      message: 'Credential updated successfully',
+      updatedCredential,
+    });
+  } catch (error) {
+    console.log('UPDATE ERROR:', error);
+
+    res.status(500).json({
+      message: 'Server error while updating',
+    });
   }
 });
 

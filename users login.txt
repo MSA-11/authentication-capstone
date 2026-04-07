@@ -1,0 +1,11 @@
+Admin User:
+Username: adminfinal
+Password: 123456
+Role: admin
+
+###############################
+
+Normal User:
+Username: user1
+Password: 123456
+Role: user

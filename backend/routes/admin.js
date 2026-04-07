@@ -12,7 +12,7 @@ const User = require('../models/User');
 // Import Division model (used for validation/reference if needed)
 const Division = require('../models/Division');
 
-// Import OU model (Organisational Units)
+// Import OU model (Organizational Units)
 const OU = require('../models/OU');
 
 // Import authentication middleware (checks if user is logged in)

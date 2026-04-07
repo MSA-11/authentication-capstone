@@ -18,7 +18,8 @@ const CredentialSchema = new mongoose.Schema({
   },
   division: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Division', // Credential belongs to a division
+    ref: 'Division',
+    required: true, // Credential belongs to a division
   },
 });
 

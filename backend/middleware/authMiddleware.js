@@ -1,28 +1,44 @@
 /** @format */
 
-// Import JWT (used to verify tokens)
 const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-// Middleware function to protect routes
-module.exports = function (req, res, next) {
-  // Get token from request header
-  const token = req.header('Authorization');
-
-  // Check if token exists
-  if (!token) {
-    return res.status(401).json({ message: 'No token, access denied' });
-  }
-
+const auth = async (req, res, next) => {
   try {
-    // Verify token using secret key
+    const authHeader = req.header('Authorization');
+
+    if (!authHeader) {
+      return res
+        .status(401)
+        .json({ message: 'No token, authorization denied' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: 'Token missing' });
+    }
+
+    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Attach user data (id + role) to request
-    req.user = decoded;
+    //  FETCH FULL USER FROM DB (THIS FIXES EVERYTHING)
+    const user = await User.findById(decoded.id);
 
-    // Continue to next function (route)
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Attach full user
+    req.user = user;
+
+    console.log('USER DIVISIONS:', user.divisions); // DEBUG
+
     next();
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid token' });
+  } catch (error) {
+    console.log('AUTH ERROR:', error.message);
+    res.status(401).json({ message: 'Token is not valid' });
   }
 };
+
+module.exports = auth;
